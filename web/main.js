@@ -1,6 +1,7 @@
 var http = require('http');
 var fs = require('fs');
 var url = require('url');
+var qs = require('querystring');
 
 function createIndexHTML(filelist){
     var list = ``;
@@ -8,29 +9,27 @@ function createIndexHTML(filelist){
     for(key in filelist){
         list += `<li><a href="/?id=${filelist[key]}">${filelist[key]}</a></li>`;
     }
-
     return list;
 }
 
-function basicTempletHTML(title, filelist, data){
+function basicTempletHTML(title, filelist, body){
     return `
-    <!doctype html>
-    <html>
-    <head>
-        <title> WEB - ${title}</title>
-        <meta charset="utf-8">
-    </head>
-    <body>
-        <h1><a href="/">WEB</a></h1>
+        <!doctype html>
+        <html>
+        <head>
+            <title> WEB - ${title}</title>
+            <meta charset="utf-8">
+        </head>
+        <body>
+            <h1><a href="/">WEB</a></h1>
 
-        <ul>${filelist}</ul>
+            <ul>${filelist}</ul>
+            <p><a href="/create">create</a></p>
+            <h2>${title}</h2>
+            <p>${body}</p>
 
-        <h2>${title}</h2>
-
-        <p>${data}</p>
-
-        </body>
-    </html>    
+            </body>
+        </html>    
     `;
 }
 
@@ -40,8 +39,7 @@ var server = http.createServer((request, response) => {
     var pathname = url.parse(_url, true).pathname;
     var title = queryData.id;
     
-    if(pathname === '/')
-    {
+    if(pathname === '/'){
         fs.readdir('./data', (err, list) => {
             var indexTemplate = createIndexHTML(list);
             
@@ -56,10 +54,31 @@ var server = http.createServer((request, response) => {
                 response.end(baseTemplate);
             });
         });
-        // response.end(fs.readFileSync(__dirname + _url));
-        // response.end(queryData.id);
-    }
-    else {
+    } else if(pathname === '/create'){
+        title = "WEB - create";
+        fs.readdir('./data', (err, list) => {
+            var indexTemplate = createIndexHTML(list);
+            fs.readFile('./form.html', 'utf-8', (err, data) => {
+                var baseTemplate = basicTempletHTML(title, indexTemplate, data);
+                response.writeHead(200);
+                response.end(baseTemplate);
+            });
+        });
+    } else if(pathname === '/create_process'){
+        var body = '';
+        request.on('data', (data) => {
+            body += data;
+        });  
+        request.on('end', () => {
+            var post = qs.parse(body);
+            var title = post.title;
+            var content = post.content;
+            fs.writeFile(`./data/${title}`, content, 'utf-8', (err) => {
+                response.writeHead(302, {Location: `/?id=${title}`});
+                response.end();
+            });
+        });
+    } else {
         response.writeHead(404);
         response.end('Not Found');
     }
