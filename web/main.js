@@ -5,6 +5,7 @@ var qs = require('querystring');
 
 let CREATE = 0;
 let UPDATE = 1;
+let DELETE = 2;
 
 function createIndexHTML(filelist){
     var list = ``;
@@ -43,7 +44,7 @@ function basicTempletFormHTML(title, data, act){
             <form action="/update_process" method="post">
                 <input type="hidden" name="id" value="${title}"/>
                 <p>
-                <input type="text" name="title" placeholder="title" value="${title}" style="width:700px;" />
+                    <input type="text" name="title" placeholder="title" value="${title}" style="width:700px;" />
                 </p>
                 <p>
                     <textarea name="content" placeholder="content" style="width:700px; height:200px; resize:none;">${data}</textarea>
@@ -55,12 +56,22 @@ function basicTempletFormHTML(title, data, act){
         return `
             <form action="/create_process" method="post">
                 <p>
-                <input type="text" name="title" placeholder="title" style="width:700px;" />
+                    <input type="text" name="title" placeholder="title" style="width:700px;" />
                 </p>
                 <p>
                     <textarea name="content" placeholder="content" style="width:700px; height:200px; resize:none;"></textarea>
                 </p>
                 <input type="submit"/>
+            </form>
+        `;
+    }
+     else if(act === 2){
+        return `
+            <form action="/delete_process" method="post" onsubmit="return confirm('delete??');">
+                <input type="hidden" name="id" value="${title}"/>
+                <p>
+                    <input type="submit" name="${title}" value="delete"/>
+                </p>
             </form>
         `;
     }
@@ -75,7 +86,7 @@ var server = http.createServer((request, response) => {
     var queryData = url.parse(_url, true).query;
     var pathname = url.parse(_url, true).pathname;
     var title = queryData.id;
-    
+
     if(pathname === '/'){
         fs.readdir('./data', (err, list) => {
             var indexTemplate = createIndexHTML(list);
@@ -86,7 +97,7 @@ var server = http.createServer((request, response) => {
                     data = 'Hello Node js';
                     var baseTemplate = basicTempletHTML(title, indexTemplate, data, `<a href="/create">create</a>`);
                 } else {
-                    var baseTemplate = basicTempletHTML(title, indexTemplate, data, `
+                    var baseTemplate = basicTempletHTML(title, indexTemplate, data + basicTempletFormHTML(title, ``, DELETE), `
                         <a href="/create">create</a> <a href="/update?id=${title}">update</a>
                     `);
                 }                
@@ -130,8 +141,7 @@ var server = http.createServer((request, response) => {
                 response.end(baseTemplate);
             });
         });
-
-    // file rename 처리할 방법..?
+    
     } else if(pathname === '/update_process'){
         var body = '';
         request
@@ -149,7 +159,21 @@ var server = http.createServer((request, response) => {
                     });
                 });
             });
-
+    
+    } else if(pathname === '/delete_process'){
+        var body = '';
+        request
+            .on('data', (data) => { body += data; })
+            .on('end', () => {
+                var post = qs.parse(body);
+                console.log(post);
+                var title = post.id;
+                fs.unlink(`data/${title}`, (err) => {
+                    response.writeHead(302, {Location: `/`});
+                    response.end();
+                });
+            });
+    
     } else {
         response.writeHead(404);
         response.end('Not Found');
