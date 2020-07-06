@@ -16,7 +16,7 @@ function createIndexHTML(filelist){
     return list;
 }
 
-function basicTempletHTML(title, filelist, body, handle){
+function basicTempletHTML(title, filelist, body, act){
     return `
         <!doctype html>
         <html>
@@ -28,7 +28,8 @@ function basicTempletHTML(title, filelist, body, handle){
             <h1><a href="/">WEB</a></h1>
 
             <ul>${filelist}</ul>
-            <p>${handle}</p>
+                <br>
+            <p>${act}</p>
             <h2>${title}</h2>
             
             <p>${body}</p>
@@ -70,7 +71,7 @@ function basicTempletFormHTML(title, data, act){
             <form action="/delete_process" method="post" onsubmit="return confirm('delete??');">
                 <input type="hidden" name="id" value="${title}"/>
                 <p>
-                    <input type="submit" name="${title}" value="delete"/>
+                    <br><input type="submit" name="${title}" value="delete"/>
                 </p>
             </form>
         `;
