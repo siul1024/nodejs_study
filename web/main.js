@@ -4,12 +4,12 @@ var url = require('url');
 var qs = require('querystring');
 
 
-//code___basicTempletFormHTML( , , code)
+//code___basicTemplateFormHTML( , , code)
 const CREATE = '0';
 const UPDATE = '1';
 const DELETE = '2';
 
-//code___basicTempletHTML( , , , code)
+//code___basicTemplateHTML( , , , code)
 const INDEXPAGE = '0';
 const DETAILPAGE = '1';
 
@@ -17,22 +17,22 @@ const DETAILPAGE = '1';
 function createIndexHTML(filelist){
     var list = ``;
     for(key in filelist){
-        list += `<li><a href="/?id=${filelist[key]}">${filelist[key]}</a></li>`;
+        list += `<li><a href="/?id=${escape(filelist[key])}">${filelist[key]}</a></li>`;
     }
     return list;
 }
 
 
-function basicTempletHTML(title, filelist, body, code){
+function basicTemplateHTML(title, filelist, body, code){
     var actCreateLink = ``;
     var btnDelete = ``;
     if(code==='0'){
         actCreateLink = `<a href="/create">create</a>`;
     } else if(code==='1') {
         actCreateLink = `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`;
-        btnDelete = basicTempletFormHTML(title, ``, DELETE);
+        btnDelete = basicTemplateFormHTML(title, null, DELETE);
     } else {
-        console.log('error___basicTempleHTML()');
+        console.log('___basicTempleHTML()');
     }
     return `
         <!doctype html>
@@ -59,7 +59,7 @@ function basicTempletHTML(title, filelist, body, code){
 }
 
 
-function basicTempletFormHTML(title=null, data=null, code){
+function basicTemplateFormHTML(title=null, data=null, code){
     //FORM '/create'
     if(code === '0'){
         return `
@@ -97,10 +97,11 @@ function basicTempletFormHTML(title=null, data=null, code){
                 </p>
             </form>
         `;
+    } else {
+        console.log('___basicTemplateHTML')
+        return ``;
     }
-    return `
-        error___basicTempletFormHTML()
-    `;
+    
 }
 
 
@@ -111,34 +112,36 @@ var server = http.createServer((request, response) => {
     var title = queryData.id;
 
     if(pathname === '/'){
-        fs.readdir('./data', (err, list) => {
+        fs.readdir('data', (err, list) => {
             var indexTemplate = createIndexHTML(list);
-            
-            fs.readFile(`./data/${title}`, 'utf-8', (err, data) => {
+            title = unescape(title);
+            fs.readFile(`data/${title}`, 'utf-8', (err, data) => {
                 var baseTemplate = ``;
                 var body = ``;
                 // data===undefined  ->  root page
                 if(data === undefined){
                     title = 'Welcome!';
                     body = 'Hello Node js';
-                    baseTemplate = basicTempletHTML(title, indexTemplate, body, INDEXPAGE);
+                    baseTemplate = basicTemplateHTML(title, indexTemplate, body, INDEXPAGE);
                 } else {
                     body = data;
-                    baseTemplate = basicTempletHTML(title, indexTemplate, body, DETAILPAGE);
+                    baseTemplate = basicTemplateHTML(title, indexTemplate, body, DETAILPAGE);
                 }                
-                response.writeHead(200);
-                response.end(baseTemplate);
+                response
+                    .writeHead(200)
+                    .end(baseTemplate);
             });
         });
 
     } else if(pathname === '/create'){
         title = "WEB - create";
-        fs.readdir('./data', (err, list) => {
+        fs.readdir('data', (err, list) => {
             var indexTemplate = createIndexHTML(list);
-            var form = basicTempletFormHTML(``, ``, CREATE);
-                var baseTemplate = basicTempletHTML(title, indexTemplate, form, null);
-                response.writeHead(200);
-                response.end(baseTemplate);
+            var form = basicTemplateFormHTML(``, ``, CREATE);
+                var baseTemplate = basicTemplateHTML(title, indexTemplate, form, null);
+                response
+                    .writeHead(200)
+                    .end(baseTemplate);
         });
 
     } else if(pathname === '/create_process'){
@@ -149,21 +152,23 @@ var server = http.createServer((request, response) => {
                 var post = qs.parse(body);
                 var title = post.title;
                 var content = post.content;
-                fs.writeFile(`./data/${title}`, content, 'utf-8', (err) => {
-                    response.writeHead(302, {Location: `/?id=${title}`});
-                    response.end();
+                fs.writeFile(`data/${title}`, content, 'utf-8', (err) => {
+                    response
+                        .writeHead(302, {Location: `/?id=${escape(title)}`})
+                        .end();
                 });
             });
 
     } else if(pathname === '/update') {
-        fs.readdir('./data', (err, list) => {
+        fs.readdir('data', (err, list) => {
             var indexTemplate = createIndexHTML(list);
             fs.readFile(`./data/${title}`, 'utf-8', (err, data) => {
                 var title = queryData.id;
-                var form = basicTempletFormHTML(title, data, UPDATE);
-                var baseTemplate = basicTempletHTML(title, indexTemplate, form, null);
-                response.writeHead(200);
-                response.end(baseTemplate);
+                var form = basicTemplateFormHTML(title, data, UPDATE);
+                var baseTemplate = basicTemplateHTML(title, indexTemplate, form, null);
+                response
+                    .writeHead(200)
+                    .end(baseTemplate);
             });
         });
     
@@ -178,9 +183,10 @@ var server = http.createServer((request, response) => {
                 var title = post.title;
                 var content = post.content;
                 fs.rename(`data/${id}`, `data/${title}`, (err) => { 
-                    fs.writeFile(`./data/${title}`, content, 'utf-8', (err) => {
-                        response.writeHead(302, {Location: `/?id=${title}`});
-                        response.end();
+                    fs.writeFile(`data/${title}`, content, 'utf-8', (err) => {
+                        response
+                            .writeHead(302, {Location: `/?id=${escape(title)}`})
+                            .end();
                     });
                 });
             });
@@ -194,14 +200,16 @@ var server = http.createServer((request, response) => {
                 console.log(post);
                 var title = post.id;
                 fs.unlink(`data/${title}`, (err) => {
-                    response.writeHead(302, {Location: `/`});
-                    response.end();
+                    response
+                        .writeHead(302, {Location: `/`})
+                        .end();
                 });
             });
     
     } else {
-        response.writeHead(404);
-        response.end('Not Found');
+        response
+            .writeHead(404)
+            .end('Not Found');
     }
 });
 
