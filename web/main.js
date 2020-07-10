@@ -3,20 +3,37 @@ var fs = require('fs');
 var url = require('url');
 var qs = require('querystring');
 
-let CREATE = 0;
-let UPDATE = 1;
-let DELETE = 2;
+
+//code___basicTempletFormHTML( , , code)
+const CREATE = '0';
+const UPDATE = '1';
+const DELETE = '2';
+
+//code___basicTempletHTML( , , , code)
+const INDEXPAGE = '0';
+const DETAILPAGE = '1';
+
 
 function createIndexHTML(filelist){
     var list = ``;
-    
     for(key in filelist){
         list += `<li><a href="/?id=${filelist[key]}">${filelist[key]}</a></li>`;
     }
     return list;
 }
 
-function basicTempletHTML(title, filelist, body, act){
+
+function basicTempletHTML(title, filelist, body, code){
+    var actCreateLink = ``;
+    var btnDelete = ``;
+    if(code==='0'){
+        actCreateLink = `<a href="/create">create</a>`;
+    } else if(code==='1') {
+        actCreateLink = `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`;
+        btnDelete = basicTempletFormHTML(title, ``, DELETE);
+    } else {
+        console.log('error___basicTempleHTML()');
+    }
     return `
         <!doctype html>
         <html>
@@ -29,18 +46,35 @@ function basicTempletHTML(title, filelist, body, act){
 
             <ul>${filelist}</ul>
                 <br>
-            <p>${act}</p>
+            <p>${actCreateLink}</p>
+
             <h2>${title}</h2>
             
             <p>${body}</p>
+            <p>${btnDelete}</p>
 
             </body>
         </html>    
     `;
 }
 
-function basicTempletFormHTML(title, data, act){
-    if(act === 1){
+
+function basicTempletFormHTML(title=null, data=null, code){
+    //FORM '/create'
+    if(code === '0'){
+        return `
+            <form action="/create_process" method="post">
+                <p>
+                    <input type="text" name="title" placeholder="title" style="width:700px;" />
+                </p>
+                <p>
+                    <textarea name="content" placeholder="content" style="width:700px; height:200px; resize:none;"></textarea>
+                </p>
+                <input type="submit"/>
+            </form>
+        `;
+    //FORM '/update'
+    } else if(code === '1'){
         return `
             <form action="/update_process" method="post">
                 <input type="hidden" name="id" value="${title}"/>
@@ -53,20 +87,8 @@ function basicTempletFormHTML(title, data, act){
                 <input type="submit"/>
             </form>
         `;
-    } else if(act === 0){
-        return `
-            <form action="/create_process" method="post">
-                <p>
-                    <input type="text" name="title" placeholder="title" style="width:700px;" />
-                </p>
-                <p>
-                    <textarea name="content" placeholder="content" style="width:700px; height:200px; resize:none;"></textarea>
-                </p>
-                <input type="submit"/>
-            </form>
-        `;
-    }
-     else if(act === 2){
+    //FORM '/delete'
+    } else if(code === '2'){
         return `
             <form action="/delete_process" method="post" onsubmit="return confirm('delete??');">
                 <input type="hidden" name="id" value="${title}"/>
@@ -93,14 +115,15 @@ var server = http.createServer((request, response) => {
             var indexTemplate = createIndexHTML(list);
             
             fs.readFile(`./data/${title}`, 'utf-8', (err, data) => {
+                var baseTemplate = ``;
+                var body = ``;
                 if(data === undefined){
                     title = 'Welcome!';
-                    data = 'Hello Node js';
-                    var baseTemplate = basicTempletHTML(title, indexTemplate, data, `<a href="/create">create</a>`);
+                    body = 'Hello Node js';
+                    baseTemplate = basicTempletHTML(title, indexTemplate, body, INDEXPAGE);
                 } else {
-                    var baseTemplate = basicTempletHTML(title, indexTemplate, data + basicTempletFormHTML(title, ``, DELETE), `
-                        <a href="/create">create</a> <a href="/update?id=${title}">update</a>
-                    `);
+                    body = data;
+                    baseTemplate = basicTempletHTML(title, indexTemplate, body, DETAILPAGE);
                 }                
                 response.writeHead(200);
                 response.end(baseTemplate);
@@ -112,7 +135,7 @@ var server = http.createServer((request, response) => {
         fs.readdir('./data', (err, list) => {
             var indexTemplate = createIndexHTML(list);
             var form = basicTempletFormHTML(``, ``, CREATE);
-                var baseTemplate = basicTempletHTML(title, indexTemplate, form, ``);
+                var baseTemplate = basicTempletHTML(title, indexTemplate, form, null);
                 response.writeHead(200);
                 response.end(baseTemplate);
         });
@@ -137,7 +160,7 @@ var server = http.createServer((request, response) => {
             fs.readFile(`./data/${title}`, 'utf-8', (err, data) => {
                 var title = queryData.id;
                 var form = basicTempletFormHTML(title, data, UPDATE);
-                var baseTemplate = basicTempletHTML(title, indexTemplate, form, ``);
+                var baseTemplate = basicTempletHTML(title, indexTemplate, form, UPDATE);
                 response.writeHead(200);
                 response.end(baseTemplate);
             });
