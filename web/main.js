@@ -99,7 +99,7 @@ function basicTempletFormHTML(title=null, data=null, code){
         `;
     }
     return `
-        error
+        error___basicTempletFormHTML()
     `;
 }
 
@@ -117,6 +117,7 @@ var server = http.createServer((request, response) => {
             fs.readFile(`./data/${title}`, 'utf-8', (err, data) => {
                 var baseTemplate = ``;
                 var body = ``;
+                // data===undefined  ->  root page
                 if(data === undefined){
                     title = 'Welcome!';
                     body = 'Hello Node js';
@@ -160,7 +161,7 @@ var server = http.createServer((request, response) => {
             fs.readFile(`./data/${title}`, 'utf-8', (err, data) => {
                 var title = queryData.id;
                 var form = basicTempletFormHTML(title, data, UPDATE);
-                var baseTemplate = basicTempletHTML(title, indexTemplate, form, UPDATE);
+                var baseTemplate = basicTempletHTML(title, indexTemplate, form, null);
                 response.writeHead(200);
                 response.end(baseTemplate);
             });
